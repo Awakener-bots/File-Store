@@ -1,0 +1,73 @@
+# credit ni dene walo ki maa ke kangan bohot sundar 
+[
+    {
+        "session": "ses1",
+        "token": "BOT_TOKEN",
+        "api_id": "12345678",
+        "api_hash": "",
+        "workers": 8,
+        "db_uri": "mongodb+srv://Awakeners-bots-Powered-by",
+        "db_name": "Awakenersbots",
+        "fsubs": [],
+        "db": -1234567890,
+        "auto_del": 300,
+        "messages": {
+            "START": "<b><blockquote><b><blockquote>Moshi Moshi Senpai {mention}</blockquote></b>\n<b>I'm Akuma Sama a Filestore bot of @Anime_Mortals</b></blockquote>",
+            "FSUB": "Hᴇʟʟᴏ Sᴇɴᴘᴀɪ {mention}\n\n<b>Yᴏᴜ Nᴇᴇᴅ Tᴏ Jᴏɪɴ Iɴ Mʏ Cʜᴀɴɴᴇʟs Tᴏ Gᴇᴛ Fɪʟᴇs</b>",
+            "ABOUT": "<b><blockquote expandable>╭───────────────⍟\n├➽ Dᴇᴠᴇʟᴏᴩᴇʀ : <a href=\"https://t.me/GPGMS0\"><b>GPG</b></a>\n├➽ Oᴡɴᴇʀ : <a href=\"https://t.me/GPGMS0\"><b>𝗚𝗣𝗚</b></a>\n├➽ Aɴɪᴍᴇ Iɴᴅᴇx : <a href=\"https://t.me/Anime_Mortals\"><b>Aɴɪᴍᴇ Mᴏʀᴛᴀʟs</b></a>\n├➽ Fɪɴɪsʜᴇᴅ Aɴɪᴍᴇ : <a href=\"https://t.me/Anime_Awakeners\"><b>Aɴɪᴍᴇ Aᴡᴀᴋᴇɴᴇʀs</b></a>\n├➽ Oɴɢᴏɪɴɢ Aɴɪᴍᴇ : <a href=\"https://t.me/Ongoing_Mortals\"><b>Oɴɢᴏɪɴɢ Mᴏʀᴛᴀʟ</b></a>\n├➽ Mᴀɴʜᴡᴀ / Mᴀɴɢᴀ : <a href=\"https://t.me/Manhwa_Mortals\"><b>Mᴀɴʜᴡᴀ Mᴏʀᴛᴀʟs</b></a>\n├➽ Nᴇᴛᴡᴏʀᴋ : <a href=\"https://t.me/The_Awakeners\"><b>Tʜᴇ Aᴡᴀᴋᴇɴᴇʀs</b></a>\n├➽ Rᴇǫ/Cʜᴀᴛ : <a href=\"https://t.me/Mortals_Realm\"><b>Mᴏʀᴛᴀʟs Rᴇᴀʟᴍ</b></a>\n╰───────────────⍟</blockquote></b>",
+            "REPLY": "<b><blockquote>❌𝗗𝗼𝗻'𝘁 𝘀𝗲𝗻𝗱 𝗺𝗲 𝗱𝗶𝗿𝗲𝗰𝘁 𝗺𝗲𝘀𝘀𝗮𝗴𝗲𝘀 𝗶𝗻 𝗱𝗺, 𝗱𝗼 𝘆𝗼𝘂 𝗵𝗮𝘃𝗲 𝗮 𝗱𝗲𝗮𝘁𝗵 𝘄𝗶𝘀𝗵?</blockquote></b>",
+            "START_PHOTO": "",
+            "FSUB_PHOTO": ""
+        },
+        "admins": [
+            123456789,
+            987654321
+        ],
+        "disable_btn": true,
+        "protect": false,
+        "credit_config": {
+            "expiry_days": 30,
+            "referral_reward": 5,
+            "payment_method": "manual",
+            "upi_id": "GPGpapaji@Fam",
+            "phone": "XXXXXXXXXX",
+            "packages": [
+                {
+                    "id": "pkg_10",
+                    "credits": 10,
+                    "price": 50,
+                    "currency": "INR"
+                },
+                {
+                    "id": "pkg_25",
+                    "credits": 25,
+                    "price": 100,
+                    "currency": "INR",
+                    "popular": true
+                },
+                {
+                    "id": "pkg_50",
+                    "credits": 50,
+                    "price": 180,
+                    "currency": "INR"
+                },
+                {
+                    "id": "pkg_100",
+                    "credits": 100,
+                    "price": 300,
+                    "currency": "INR"
+                }
+            ]
+        },
+        "token_config": {
+            "token_expiry_minutes": 10,
+            "max_bypass_attempts": 5,
+            "bypass_check_hours": 24
+        },
+        "auto_batch_config": {
+            "enabled": true,
+            "time_window_seconds": 30,
+            "min_files_for_batch": 2
+        }
+    }
+]

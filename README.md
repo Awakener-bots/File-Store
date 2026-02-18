@@ -7,8 +7,8 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/github/stars/Awakener_Bots/File-Store?style=for-the-badge&color=00BFFF">
-  <img src="https://img.shields.io/github/forks/Awakener_Bots/File-Store?style=for-the-badge&color=00BFFF">
+  <img src="https://img.shields.io/github/stars/Awakener_bots/File-Store?style=for-the-badge&color=00BFFF">
+  <img src="https://img.shields.io/github/forks/Awakener_bots/File-Store?style=for-the-badge&color=00BFFF">
   <img src="https://img.shields.io/badge/Python-3.8+-blue?style=for-the-badge">
   <img src="https://img.shields.io/badge/MongoDB-Database-green?style=for-the-badge">
 </p>
@@ -25,6 +25,7 @@ A powerful Telegram bot for file sharing with advanced features including batch 
 
 ### Core Features
 - 📁 **File Sharing** - Share files via unique links with automatic link generation
+- 🔒 **Hybrid Token System** - Secure, random 12-16 char token links with full backward compatibility for legacy Base64 links.
 - 📦 **Batch Processing** - Create batches for episodes/seasons with cancel functionality
 - 🤖 **Auto Batch** - Automatic batch creation with quality detection and configurable time windows
 - 💎 **Premium System** - Full subscription management with pricing tiers and expiry tracking

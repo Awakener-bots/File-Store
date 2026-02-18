@@ -213,29 +213,39 @@ class MongoDB:
 
     async def ensure_token_indexes(self):
         """Create MongoDB indexes for fast token lookup (call once on startup)."""
-        await self.file_tokens.create_index("token", unique=True)
+        # Fix: Drop incorrect 'token' index if it exists (caused duplicate null error)
+        try:
+            await self.file_tokens.drop_index("token_1")
+        except:
+            pass
+            
+        # _id is automatically indexed and unique, so we don't need another unique index on token
         await self.file_tokens.create_index("created_at")  # For TTL cleanup
         await self.rate_limits.create_index("user_id")
         await self.rate_limits.create_index("window_start")  # For cleanup
 
-    async def create_file_token(self, channel_id: int, msg_id: int, is_batch: bool = False) -> str:
+    async def create_file_token(self, channel_id: int, msg_id: int, is_batch: bool = False, end_msg_id: int = None) -> str:
         """Generate a unique random token and store it in MongoDB. Returns the token."""
-        from helper.helper_func import generate_token
+        import secrets
+        import string
         from datetime import datetime
         
+        alphabet = string.ascii_letters + string.digits
+        
         for _ in range(10):  # Retry up to 10 times on collision
-            token = generate_token(14)
+            token = ''.join(secrets.choice(alphabet) for _ in range(14))
             try:
                 await self.file_tokens.insert_one({
                     "_id": token,
                     "channel_id": channel_id,
                     "msg_id": msg_id,
+                    "end_msg_id": end_msg_id,  # Store end ID for ranges
                     "is_batch": is_batch,
                     "created_at": datetime.utcnow(),
                     "clicks": 0
                 })
                 return token
-            except Exception:  # Duplicate key
+            except Exception: # Duplicate key (_id collision)
                 continue
         raise RuntimeError("Failed to generate unique token after 10 attempts")
 

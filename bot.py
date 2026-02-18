@@ -175,6 +175,15 @@ class Bot(Client):
             self.LOGGER(__name__, self.name).info("Token indexes ensured.")
         except Exception as e:
             self.LOGGER(__name__, self.name).warning(f"Failed to create token indexes: {e}")
+            
+        # 🔄 Load Dynamic Configs (Auto-Del)
+        try:
+            stored_auto_del = await self.mongodb.get_bot_config('auto_del')
+            if stored_auto_del is not None:
+                self.auto_del = int(stored_auto_del)
+                self.LOGGER(__name__, self.name).info(f"Loaded Auto-Del settings from DB: {self.auto_del}s")
+        except Exception as e:
+             self.LOGGER(__name__, self.name).warning(f"Failed to load dynamic config: {e}")
         
         try:
             asyncio.create_task(self._broadcast_ttl_worker())

@@ -53,9 +53,8 @@ async def start_command(client: Client, message: Message):
         except IndexError:
             return
 
-        # If it's a batch link, let the batch_handler handle it (Group 1)
-        if base64_string.startswith("batch_"):
-            return
+        # Early return removed to allow valid handling of batch links
+
         
         # ============== REFERRAL SYSTEM ==============
         # Check if this is a referral link: /start ref_XXXXXXXX
@@ -80,10 +79,32 @@ async def start_command(client: Client, message: Message):
         # ---------------- TOKEN VERIFIED / SHORTENER SOLVED ----------------
         if "_" in base64_string:
             parts = base64_string.split("_", 1)
-            if len(parts) == 2:
+            # Handle batch_ID_TOKEN case where batch_ID might contain underscores? 
+            # No, batch_ID is hex. So splitting logic works.
+            # But wait, create_batch uses secrets.token_hex(8) -> "a1b2c3d4e5f6g7h8" (no underscores)
+            # So splitting by first "_" is fine if token is second part.
+            # BUT if original was "batch_XYZ", split gives "batch", "XYZ". 
+            # NO. "batch_XYZ_TOKEN". 
+            # split("_", 1) -> "batch", "XYZ_TOKEN". WRONG.
+            # We need to handle "batch_" prefix carefully.
+            
+            # If it starts with batch_, we assume format: batch_BATCHID_TOKEN
+            if base64_string.startswith("batch_"):
+                # expected: batch_{id}_{token}
+                # split("_") -> [batch, id, token]
+                parts = base64_string.split("_")
+                if len(parts) >= 3:
+                     # reconstruct original: batch_{id}
+                     original_base64 = f"{parts[0]}_{parts[1]}"
+                     access_token = parts[2]
+                else:
+                    # Fallback or invalid
+                    pass
+            elif len(parts) == 2:
                 original_base64 = parts[0]
                 access_token = parts[1]
 
+            if access_token:
                 # Check if verification is enabled
                 token_verification_enabled = await client.mongodb.get_bot_config('token_verification_enabled', True)
 
@@ -175,13 +196,25 @@ async def start_command(client: Client, message: Message):
 
                     # Grant temporary access to bypass the check below
                     is_premium_user = True
+                    
+                    # If this was a BATCH link, we need to manually trigger the batch handler
+                    if original_base64.startswith("batch_"):
+                         batch_id = original_base64.replace("batch_", "").strip()
+                         from plugins.batch_handler import process_batch
+                         await process_batch(client, message, batch_id)
+                         message.stop_propagation()
+                         return
+
                     # Fall through to file sending logic...
 
         # -------------------------- HYBRID TOKEN / BASE64 DECODE --------------------------
         # 🔐 NEW: Check if it's a token-format link (alphanumeric, 12-16 chars)
         from helper.helper_func import is_token_format
         
-        if is_token_format(original_base64):
+        # Batch links are NOT tokens in DB, they are IDs to be resolved by handler or Shortener
+        is_batch = original_base64.startswith("batch_")
+        
+        if not is_batch and is_token_format(original_base64):
             # ---- Rate limit check ----
             if await client.mongodb.is_token_rate_limited(user_id):
                 return await message.reply(
@@ -202,10 +235,20 @@ async def start_command(client: Client, message: Message):
             
             # ---- Token resolved! Build ids from token data ----
             channel_id = token_doc["channel_id"]
-            msg_id = token_doc["msg_id"]
-            ids = [msg_id]
+            start_msg_id = token_doc["msg_id"]
+            end_msg_id = token_doc.get("end_msg_id")
+            
+            if end_msg_id:
+                ids = range(start_msg_id, end_msg_id + 1)
+            else:
+                ids = [start_msg_id]
+                
             custom_chat_id = channel_id
             
+        elif is_batch:
+            # Raw Batch Link: Skip decoding (it's not base64) and fall through to Check/Shortener
+            ids = []
+            custom_chat_id = None
         else:
             # ---- OLD Base64 path (backward compatible) ----
             try:
@@ -294,6 +337,33 @@ async def start_command(client: Client, message: Message):
         if not is_premium_user and token_verification_enabled:
             temp_msg = await message.reply(f"🔄 **{sc('generating your link')}...**")
             
+            # ---------------- FETCH CONTENT NAME ----------------
+            content_name = ""
+            try:
+                if original_base64.startswith("batch_"):
+                    b_id = original_base64.replace("batch_", "").strip()
+                    batch = await client.mongodb.get_batch(b_id)
+                    if batch:
+                        content_name = f"📦 <b>{batch.get('base_name', 'Batch Pack')}</b>\n\n"
+                elif 'ids' in locals() and ids:
+                    # Use resolved IDs (Works for Token & Old Base64)
+                    try:
+                        t_msg_id = ids[0]
+                        t_chat_id = custom_chat_id if 'custom_chat_id' in locals() and custom_chat_id else client.db
+                        
+                        # Fetch message
+                        f_msg = await client.get_messages(t_chat_id, t_msg_id)
+                        if f_msg:
+                            if f_msg.document:
+                                content_name = f"🎬 <b>{f_msg.document.file_name}</b>\n\n"
+                            elif f_msg.caption:
+                                # Start of caption usually contains filename or title
+                                pass 
+                    except:
+                        pass
+            except Exception as e:
+                client.LOGGER(__name__, client.name).warning(f"Error fetching content name: {e}")
+            
             access_token = secrets.token_hex(16)
             await client.mongodb.create_access_token(user_id, original_base64, access_token)
             
@@ -303,6 +373,7 @@ async def start_command(client: Client, message: Message):
             await temp_msg.delete()
             
             premium_text = (
+                f"{content_name}"
                 f"<b>🔗 {sc('your file link')}:</b>\n\n"
                 f"<blockquote>👉 {sc('solve the shortener to unlock your file')}</blockquote>\n\n"
                 f"<b>💎 {sc('want direct access')}?</b> {sc('buy premium')}!"
@@ -321,11 +392,21 @@ async def start_command(client: Client, message: Message):
                 photo="https://i.ibb.co/FtnfS25/photo-2025-10-31-18-43-10-7567458335163678756.jpg",
                 caption=premium_text,
                 reply_markup=buttons,
-                protect_content=True  #  ✅ ADD THIS LINE
+                protect_content=True
             )
+            if original_base64.startswith("batch_"):
+                message.stop_propagation()
             return
         
         # ------------------ PREMIUM / CREDIT USERS: SEND FILE ------------------
+        
+        if original_base64.startswith("batch_"):
+             batch_id = original_base64.replace("batch_", "").strip()
+             from plugins.batch_handler import process_batch
+             await process_batch(client, message, batch_id)
+             message.stop_propagation()
+             return
+
         temp_msg = await message.reply(f"{sc('wait a sec')}..")
         
         try:

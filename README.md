@@ -74,7 +74,7 @@ pip install -r requirements.txt
 
 ### 3️⃣ Configuration
 
-Fill a `config.py` file:
+Fill a `setup.json` file:
 
 ```python
 [

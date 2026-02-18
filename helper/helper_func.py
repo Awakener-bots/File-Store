@@ -57,6 +57,19 @@ async def decode(base64_string):
     string = string_bytes.decode("utf-8")
     return string
 
+import secrets as _secrets
+import string as _string
+
+def generate_token(length: int = 14) -> str:
+    """Generate a cryptographically secure random token (URL-safe, alphanumeric only)."""
+    alphabet = _string.ascii_letters + _string.digits  # a-z A-Z 0-9
+    return ''.join(_secrets.choice(alphabet) for _ in range(length))
+
+def is_token_format(s: str) -> bool:
+    """Check if string looks like a new-style token (alphanumeric, 12-16 chars, no special chars)."""
+    return s.isalnum() and 12 <= len(s) <= 16
+
+
 async def get_messages(client, message_ids, chat_id=None):
     messages = []
     total_messages = 0

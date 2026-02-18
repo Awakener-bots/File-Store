@@ -147,9 +147,14 @@ async def single_file_gen_handler(client: Client, message: Message):
             post = await message.copy(chat_id=channel_id, caption=message.caption)
             msg_id = post.id
             
-        # Generate Link
-        base64_string = await encode(f"get-{msg_id * abs(channel_id)}")
-        link = f"https://t.me/{client.username}?start={base64_string}"
+        # 🔐 Generate hybrid token (stored in MongoDB)
+        try:
+            token = await client.mongodb.create_file_token(channel_id, msg_id)
+            link = f"https://t.me/{client.username}?start={token}"
+        except Exception:
+            # Fallback to Base64
+            base64_string = await encode(f"get-{msg_id * abs(channel_id)}")
+            link = f"https://t.me/{client.username}?start={base64_string}"
         
         reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton(f"🔁 {sc('share url')}", url=f'https://telegram.me/share/url?url={link}')]])
         

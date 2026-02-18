@@ -169,11 +169,19 @@ class Bot(Client):
         
         self.username = usr_bot_me.username
         
+        # 🔐 Ensure MongoDB indexes for hybrid token system
+        try:
+            await self.mongodb.ensure_token_indexes()
+            self.LOGGER(__name__, self.name).info("Token indexes ensured.")
+        except Exception as e:
+            self.LOGGER(__name__, self.name).warning(f"Failed to create token indexes: {e}")
+        
         try:
             asyncio.create_task(self._broadcast_ttl_worker())
             asyncio.create_task(self._credit_expiry_worker())
         except Exception as e:
             self.LOGGER(__name__, self.name).warning(f"Failed to start background workers: {e}")
+
 
     async def stop(self, *args):
         await super().stop()

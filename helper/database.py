@@ -23,6 +23,8 @@ class MongoDB:
             instance.bot_config = instance.db["bot_config"]  # Bot configuration
             instance.batch_groups = instance.db["batch_groups"]  # Auto-batch groups
             instance.pending_files = instance.db["pending_files"]  # Files pending grouping
+            instance.file_tokens = instance.db["file_tokens"]  # Hybrid token system
+            instance.rate_limits = instance.db["rate_limits"]  # Rate limiting
             cls._instances[(uri, db_name)] = instance
         return cls._instances[(uri, db_name)]
 
@@ -204,6 +206,74 @@ class MongoDB:
     async def get_premium_users(self) -> list[int]:
         cursor = self.user_data.find({'is_premium': True})
         return [doc['_id'] async for doc in cursor]
+
+    # =====================================================
+    # HYBRID TOKEN LINK SYSTEM
+    # =====================================================
+
+    async def ensure_token_indexes(self):
+        """Create MongoDB indexes for fast token lookup (call once on startup)."""
+        await self.file_tokens.create_index("token", unique=True)
+        await self.file_tokens.create_index("created_at")  # For TTL cleanup
+        await self.rate_limits.create_index("user_id")
+        await self.rate_limits.create_index("window_start")  # For cleanup
+
+    async def create_file_token(self, channel_id: int, msg_id: int, is_batch: bool = False) -> str:
+        """Generate a unique random token and store it in MongoDB. Returns the token."""
+        from helper.helper_func import generate_token
+        from datetime import datetime
+        
+        for _ in range(10):  # Retry up to 10 times on collision
+            token = generate_token(14)
+            try:
+                await self.file_tokens.insert_one({
+                    "_id": token,
+                    "channel_id": channel_id,
+                    "msg_id": msg_id,
+                    "is_batch": is_batch,
+                    "created_at": datetime.utcnow(),
+                    "clicks": 0
+                })
+                return token
+            except Exception:  # Duplicate key
+                continue
+        raise RuntimeError("Failed to generate unique token after 10 attempts")
+
+    async def resolve_file_token(self, token: str) -> dict | None:
+        """Resolve a token to {channel_id, msg_id}. Returns None if not found."""
+        await self.file_tokens.update_one(
+            {"_id": token},
+            {"$inc": {"clicks": 1}}
+        )
+        doc = await self.file_tokens.find_one({"_id": token})
+        return doc  # Returns full doc or None
+
+    async def record_invalid_token_attempt(self, user_id: int):
+        """Record an invalid token attempt for rate limiting."""
+        from datetime import datetime
+        now = datetime.utcnow()
+        window_start = now.replace(second=0, microsecond=0)  # 1-minute window
+        
+        await self.rate_limits.update_one(
+            {"user_id": user_id, "window_start": window_start},
+            {"$inc": {"attempts": 1}, "$setOnInsert": {"created_at": now}},
+            upsert=True
+        )
+
+    async def is_token_rate_limited(self, user_id: int, max_attempts: int = 10) -> bool:
+        """Check if user has exceeded invalid token attempts in the last 60 seconds."""
+        from datetime import datetime, timedelta
+        now = datetime.utcnow()
+        window_start = now - timedelta(minutes=1)
+        
+        cursor = self.rate_limits.find({
+            "user_id": user_id,
+            "window_start": {"$gte": window_start}
+        })
+        total = 0
+        async for doc in cursor:
+            total += doc.get("attempts", 0)
+        return total >= max_attempts
 
     # =====================================================
     # BROADCAST TTL JOBS

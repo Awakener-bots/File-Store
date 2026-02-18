@@ -112,10 +112,16 @@ async def auto_batch_handler(client: Client, message: Message):
             display_info = f"{len(files)} Episodes"
             title_text = f"**{sc('content')}:** {display_info}"
             
+        timer_text = ""
+        if client.auto_del > 0:
+            import humanize
+            timer_text = f"⏳ **{sc('auto delete')}:** {humanize.naturaldelta(client.auto_del)}\n"
+            
         batch_text = (
             f"**📦 {sc('batch available')}**\n\n"
             f"**{sc('title')}:** {current_group_key}\n"
-            f"{title_text}\n\n"
+            f"{title_text}\n"
+            f"{timer_text}\n"
             f"{sc('click below to access')}"
         )
         

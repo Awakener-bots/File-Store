@@ -1,4 +1,4 @@
- [
+[
     {
         "session": "ses1",
         "token": "BOT_TOKEN",
@@ -69,4 +69,4 @@
             "min_files_for_batch": 2
         }
     }
-]
+            ]
